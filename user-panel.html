@@ -6857,6 +6857,10 @@
             // Quantity suffix'i güncelle
             document.getElementById('quantitySuffix').textContent = symbol;
             
+            // Global değişkenleri güncelle
+            currentCoinPrice = priceInTL;
+            currentCoinSymbol = symbol;
+            
             // Direction'a göre initial state ayarla
             setTradingDirection(direction);
             
@@ -8356,6 +8360,8 @@
         let currentLeverageMode = 'spot';
         let currentLeverage = 1;
         let currentPositionType = 'long';
+        let currentCoinPrice = 0;
+        let currentCoinSymbol = 'BTC';
 
         // Trading modal'ı başlat
         function initTradingModal() {
@@ -8368,6 +8374,9 @@
                     currentLeverageMode = this.dataset.mode;
                     toggleLeverageSelection();
                     updateTradingCalculations();
+                    
+                    // Execute button'ı güncelle
+                    setTradingDirection(window.currentTradingCoin?.direction || 'buy');
                 });
             });
 
@@ -8390,6 +8399,16 @@
                     
                     currentPositionType = this.dataset.position;
                     updateTradingCalculations();
+                    
+                    // Execute button metnini güncelle
+                    if (currentLeverageMode === 'leverage') {
+                        const executeText = document.getElementById('executeText');
+                        const positionText = currentPositionType === 'long' ? 'Long Pozisyon Aç' : 'Short Pozisyon Aç';
+                        executeText.textContent = `${currentCoinSymbol} ${positionText}`;
+                        
+                        const executeBtn = document.getElementById('executeOrderBtn');
+                        executeBtn.className = `execute-btn ${currentPositionType === 'long' ? 'buy-order' : 'sell-order'}`;
+                    }
                 });
             });
         }
@@ -8398,10 +8417,14 @@
         function toggleLeverageSelection() {
             const leverageSelection = document.getElementById('leverageSelection');
             const leverageSummaryRows = document.getElementById('leverageSummaryRows');
+            const executeBtn = document.getElementById('executeOrderBtn');
             
             if (currentLeverageMode === 'leverage') {
                 leverageSelection.style.display = 'block';
                 leverageSummaryRows.style.display = 'block';
+                
+                // Kaldıraç modunda execute button'ı aktif et
+                executeBtn.disabled = false;
             } else {
                 leverageSelection.style.display = 'none';
                 leverageSummaryRows.style.display = 'none';
