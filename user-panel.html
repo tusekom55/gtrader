@@ -9031,6 +9031,8 @@
 
         // Grafik güncelleme interval'ini başlat
         function startChartUpdates(coinSymbol, containerId) {
+            console.log(`🚀 Grafik başlatılıyor: ${coinSymbol} -> ${containerId}`);
+            
             // Önceki interval'i temizle
             if (chartUpdateIntervals[coinSymbol]) {
                 clearInterval(chartUpdateIntervals[coinSymbol]);
@@ -9038,7 +9040,42 @@
 
             // İlk grafiği oluştur
             const chart = createPriceChart(coinSymbol, containerId);
-            if (!chart) return;
+            if (!chart) {
+                console.error(`❌ Grafik oluşturulamadı: ${containerId}`);
+                return;
+            }
+
+            console.log(`✅ Grafik oluşturuldu: ${coinSymbol}`);
+
+            // İlk veriyi hemen al
+            setTimeout(async () => {
+                try {
+                    console.log(`📊 İlk veri alınıyor: ${coinSymbol}`);
+                    const response = await fetch('backend/user/coins.php?action=all', {
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+                    
+                    console.log(`📋 API yanıtı:`, data);
+                    
+                    if (data.success && data.coins) {
+                        const coin = data.coins.find(c => c.coin_kodu === coinSymbol);
+                        console.log(`🪙 Bulunan coin:`, coin);
+                        
+                        if (coin && coin.current_price) {
+                            const price = parseFloat(coin.current_price);
+                            console.log(`💰 Fiyat güncelleniyor: ${coinSymbol} = ₺${price}`);
+                            updatePriceChart(coinSymbol, price);
+                        } else {
+                            console.warn(`⚠️ ${coinSymbol} için fiyat bulunamadı`);
+                        }
+                    } else {
+                        console.error(`❌ API hatası:`, data.error);
+                    }
+                } catch (error) {
+                    console.error('İlk grafik verisi alma hatası:', error);
+                }
+            }, 1000);
 
             // 30 saniyede bir güncelle
             chartUpdateIntervals[coinSymbol] = setInterval(async () => {
@@ -9051,32 +9088,15 @@
                     if (data.success && data.coins) {
                         const coin = data.coins.find(c => c.coin_kodu === coinSymbol);
                         if (coin && coin.current_price) {
-                            updatePriceChart(coinSymbol, parseFloat(coin.current_price));
+                            const price = parseFloat(coin.current_price);
+                            console.log(`🔄 Güncelleme: ${coinSymbol} = ₺${price}`);
+                            updatePriceChart(coinSymbol, price);
                         }
                     }
                 } catch (error) {
                     console.error('Grafik güncelleme hatası:', error);
                 }
             }, 30000);
-
-            // İlk veriyi hemen al
-            setTimeout(async () => {
-                try {
-                    const response = await fetch('backend/user/coins.php?action=all', {
-                        credentials: 'include'
-                    });
-                    const data = await response.json();
-                    
-                    if (data.success && data.coins) {
-                        const coin = data.coins.find(c => c.coin_kodu === coinSymbol);
-                        if (coin && coin.current_price) {
-                            updatePriceChart(coinSymbol, parseFloat(coin.current_price));
-                        }
-                    }
-                } catch (error) {
-                    console.error('İlk grafik verisi alma hatası:', error);
-                }
-            }, 1000);
         }
 
         // Grafik güncellemelerini durdur
@@ -9103,6 +9123,8 @@
 
         // Pozisyonlar sekmesine geçildiğinde grafikleri başlat
         function initPositionCharts() {
+            console.log('📈 Pozisyon grafikleri başlatılıyor...');
+            
             // Önce tüm grafikleri durdur
             stopAllChartUpdates();
             
@@ -9111,6 +9133,23 @@
                 startAllChartUpdates();
             }, 1000);
         }
+
+        // Test fonksiyonu - console'dan çağırabilirsin
+        function testCharts() {
+            console.log('🧪 Grafik testi başlatılıyor...');
+            console.log('📊 Mevcut grafikler:', Object.keys(priceCharts));
+            console.log('⏰ Aktif interval\'ler:', Object.keys(chartUpdateIntervals));
+            
+            // Test verisi ekle
+            updatePriceChart('BTC', 1350000);
+            updatePriceChart('ETH', 85000);
+            updatePriceChart('BNB', 12500);
+            
+            console.log('✅ Test verileri eklendi!');
+        }
+
+        // Global test fonksiyonu
+        window.testCharts = testCharts;
 
         // Sayfa yüklendiğinde kaldıraç sistemini başlat
         document.addEventListener('DOMContentLoaded', function() {
