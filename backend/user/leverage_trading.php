@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Session tabanlı authentication check
-session_start();
+// session_start(); // Config.php'de zaten başlatılıyor
 
 // Debug: Session bilgilerini log'la
 error_log('Session kontrol: ' . print_r($_SESSION, true));

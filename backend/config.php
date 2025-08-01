@@ -1,4 +1,9 @@
 <?php
+// Oturum yönetimi - çakışmaları önle
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Veritabanı bağlantı ayarları
 $DB_HOST = 'localhost';
 $DB_USER = 'u225998063_yenip';
@@ -51,15 +56,10 @@ if ($conn->connect_error) {
 $conn->set_charset("utf8mb4");
 
 // Debug modu (production'da false yapın)
-define('DEBUG_MODE', false);
+define('DEBUG_MODE', true); // Test için geçici olarak true
 
 // Sadece debug modunda test session değerleri
 if (!isset($_SESSION['user_id']) && defined('DEBUG_MODE') && DEBUG_MODE) {
     $_SESSION['user_id'] = 1; // Test kullanıcısı
     $_SESSION['role'] = 'user';
-}
-
-// Oturum yönetimi - çakışmaları önle
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
 } 
