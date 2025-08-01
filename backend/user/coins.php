@@ -46,15 +46,15 @@ try {
         echo json_encode([
             'success' => true, 
             'coins' => [
-                ['id' => 1, 'coin_adi' => 'Bitcoin', 'coin_kodu' => 'BTC', 'kategori_adi' => 'Kripto Para'],
-                ['id' => 2, 'coin_adi' => 'Ethereum', 'coin_kodu' => 'ETH', 'kategori_adi' => 'Kripto Para'],
-                ['id' => 3, 'coin_adi' => 'BNB', 'coin_kodu' => 'BNB', 'kategori_adi' => 'Kripto Para']
+                ['id' => 1, 'coin_adi' => 'Bitcoin', 'coin_kodu' => 'BTC', 'current_price' => 1350000, 'kategori_adi' => 'Kripto Para'],
+                ['id' => 2, 'coin_adi' => 'Ethereum', 'coin_kodu' => 'ETH', 'current_price' => 85000, 'kategori_adi' => 'Kripto Para'],
+                ['id' => 3, 'coin_adi' => 'BNB', 'coin_kodu' => 'BNB', 'current_price' => 12500, 'kategori_adi' => 'Kripto Para']
             ]
         ]);
         exit;
     }
     
-    $sql = 'SELECT coins.id, coins.coin_adi, coins.coin_kodu, COALESCE(coin_kategorileri.kategori_adi, "Diğer") as kategori_adi FROM coins LEFT JOIN coin_kategorileri ON coins.kategori_id = coin_kategorileri.id WHERE coins.is_active = 1 ORDER BY coins.sira ASC, coins.id ASC';
+    $sql = 'SELECT coins.id, coins.coin_adi, coins.coin_kodu, coins.current_price, COALESCE(coin_kategorileri.kategori_adi, "Diğer") as kategori_adi FROM coins LEFT JOIN coin_kategorileri ON coins.kategori_id = coin_kategorileri.id WHERE coins.is_active = 1 ORDER BY coins.sira ASC, coins.id ASC';
     $stmt = $conn->prepare($sql);
     $stmt->execute();
     $coins = $stmt->fetchAll(PDO::FETCH_ASSOC);
