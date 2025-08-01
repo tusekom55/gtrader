@@ -7183,16 +7183,44 @@
         
         // Enhanced order execution
         async function executeEnhancedOrder() {
+            console.log('🎯 Execute button tıklandı!');
+            console.log('🔍 Mevcut mod:', currentLeverageMode);
+            
             if (!window.currentTradingCoin) {
+                console.error('❌ currentTradingCoin bulunamadı');
                 showNotification('Coin bilgisi bulunamadı', 'error');
                 return;
             }
             
             // Kaldıraçlı işlem kontrolü
             if (currentLeverageMode === 'leverage') {
+                console.log('🔄 Kaldıraçlı işlem başlatılıyor...', {
+                    mode: currentLeverageMode,
+                    leverage: currentLeverage,
+                    positionType: currentPositionType,
+                    coinSymbol: window.currentTradingCoin?.symbol,
+                    price: window.currentTradingCoin?.priceInTL
+                });
+                
+                // Miktar hesapla
+                const coinAmount = parseFloat(document.getElementById('coinAmount').value) || 0;
+                const totalAmount = parseFloat(document.getElementById('totalAmount').value) || 0;
+                let investedAmount = 0;
+                
+                if (totalAmount > 0) {
+                    investedAmount = totalAmount;
+                } else if (coinAmount > 0) {
+                    investedAmount = (coinAmount * window.currentTradingCoin.priceInTL) / currentLeverage;
+                } else {
+                    showNotification('Lütfen bir miktar giriniz', 'error');
+                    return;
+                }
+                
+                console.log('💰 Yatırım miktarı hesaplandı:', investedAmount);
+                
                 await executeLeverageOrder({
                     coin_symbol: window.currentTradingCoin.symbol,
-                    invested_amount: parseFloat(document.getElementById('totalAmount').value) || (parseFloat(document.getElementById('coinAmount').value) * window.currentTradingCoin.priceInTL) / currentLeverage,
+                    invested_amount: investedAmount,
                     entry_price: window.currentTradingCoin.priceInTL
                 });
                 return;
@@ -7382,8 +7410,7 @@
                  });
              });
 
-             // Execute order
-             document.getElementById('executeOrderBtn').addEventListener('click', executeOrder);
+             // Execute order - bu event listener kaldırıldı (çakışma önlenmesi için)
          }
 
          // Order özeti güncelle
@@ -8661,25 +8688,41 @@
 
         // Kaldıraçlı işlem yap
         async function executeLeverageOrder(orderData) {
+            console.log('🚀 ExecuteLeverageOrder çağrıldı:', orderData);
+            console.log('📊 Mevcut parametreler:', {
+                currentPositionType,
+                currentLeverage,
+                currentLeverageMode
+            });
+            
             try {
                 const token = localStorage.getItem('token');
+                console.log('🔑 Token:', token ? 'Mevcut' : 'YOK!');
+                
+                const requestData = {
+                    action: 'open_position',
+                    coin_symbol: orderData.coin_symbol,
+                    position_type: currentPositionType,
+                    leverage_ratio: currentLeverage,
+                    invested_amount: orderData.invested_amount,
+                    entry_price: orderData.entry_price
+                };
+                
+                console.log('📤 API isteği gönderiliyor:', requestData);
+                
                 const response = await fetch('backend/user/leverage_trading.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({
-                        action: 'open_position',
-                        coin_symbol: orderData.coin_symbol,
-                        position_type: currentPositionType,
-                        leverage_ratio: currentLeverage,
-                        invested_amount: orderData.invested_amount,
-                        entry_price: orderData.entry_price
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
+                console.log('📥 API yanıtı alındı:', response.status, response.statusText);
+                
                 const data = await response.json();
+                console.log('📋 API verisi:', data);
                 
                 if (data.success) {
                     showToast(`Kaldıraçlı pozisyon açıldı! Pozisyon ID: ${data.position_id}`, 'success');
@@ -8687,17 +8730,30 @@
                     loadUserInfo(); // Bakiyeyi güncelle
                     loadPositions(); // Pozisyonları güncelle
                 } else {
+                    console.error('❌ API hatası:', data.error);
                     throw new Error(data.error || 'Pozisyon açılamadı');
                 }
             } catch (error) {
-                console.error('Kaldıraçlı işlem hatası:', error);
-                showToast('Kaldıraçlı işlem gerçekleştirilemedi', 'error');
+                console.error('💥 Kaldıraçlı işlem hatası:', error);
+                showToast(`Hata: ${error.message}`, 'error');
             }
+        }
+
+        // Token kontrolü
+        function checkAuthToken() {
+            const token = localStorage.getItem('token');
+            console.log('🔐 Token kontrolü:', token ? 'Mevcut' : 'YOK');
+            if (!token) {
+                console.warn('⚠️ Authentication token bulunamadı!');
+                return false;
+            }
+            return true;
         }
 
         // Sayfa yüklendiğinde kaldıraç sistemini başlat
         document.addEventListener('DOMContentLoaded', function() {
             initTradingModal();
+            checkAuthToken();
         });
     </script>
 </body>
