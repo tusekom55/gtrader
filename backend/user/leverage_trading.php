@@ -5,9 +5,9 @@ if (ob_get_level()) ob_end_clean();
 // Output buffering başlat - HTML output'u önlemek için
 ob_start();
 
-// Error reporting için
-ini_set('display_errors', 0); 
-ini_set('display_startup_errors', 0);
+// Error reporting için - debug mode
+ini_set('display_errors', 1); 
+ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Step by step debug
