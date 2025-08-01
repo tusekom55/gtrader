@@ -7,8 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
             <!-- Chart.js CDN - Latest Version -->
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+        <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         * {
             margin: 0;
@@ -4497,7 +4496,7 @@
 
         /* Candlestick Grafik Stilleri */
         .candlestick-container {
-            height: 500px;
+            height: 300px;
             width: 100%;
             background: #1a1a1a;
             border-radius: 8px;
@@ -5503,9 +5502,7 @@
                                     <option value="1d" selected>1 Gün</option>
                                 </select>
                                 <select id="coinSelect" class="coin-select" onchange="changeCoin()">
-                                    <option value="BTC" selected>Bitcoin (BTC)</option>
-                                    <option value="ETH">Ethereum (ETH)</option>
-                                    <option value="BNB">Binance Coin (BNB)</option>
+                                    <option value="" disabled>Pozisyonlardan seçin</option>
                                 </select>
                                 <button class="btn-secondary" onclick="refreshCandlestick()">
                                     <i class="fas fa-sync-alt"></i>
@@ -5518,39 +5515,7 @@
                         </div>
                     </div>
 
-                    <!-- Canlı Fiyat Grafikleri -->
-                    <div class="card mb-6">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-chart-area" style="color: #00d4aa; margin-right: 10px;"></i>
-                                Canlı Fiyat Grafikleri
-                            </h3>
-                            <div class="chart-controls">
-                                <button class="btn-secondary" onclick="startAllChartUpdates()">
-                                    <i class="fas fa-play"></i>
-                                    Grafikleri Başlat
-                                </button>
-                                <button class="btn-secondary" onclick="stopAllChartUpdates()">
-                                    <i class="fas fa-pause"></i>
-                                    Grafikleri Durdur
-                                </button>
-                            </div>
-                        </div>
-                        <div class="chart-grid">
-                            <div class="chart-container">
-                                <h4>Bitcoin (BTC)</h4>
-                                <canvas id="btcChart" width="400" height="200"></canvas>
-                            </div>
-                            <div class="chart-container">
-                                <h4>Ethereum (ETH)</h4>
-                                <canvas id="ethChart" width="400" height="200"></canvas>
-                            </div>
-                            <div class="chart-container">
-                                <h4>Binance Coin (BNB)</h4>
-                                <canvas id="bnbChart" width="400" height="200"></canvas>
-                            </div>
-                        </div>
-                    </div>
+
 
                     <!-- Açık Pozisyonlar Tablosu -->
                     <div class="card">
@@ -5744,7 +5709,6 @@
                     } else if (targetSection === 'positions') {
                         loadPositions();
                         startPriceUpdates(); // Pozisyonlar sekmesinde otomatik fiyat güncelleme başlat
-                        initPositionCharts(); // Grafikleri başlat
                         initCandlestickChart(); // Candlestick grafiği başlat
                     } else if (targetSection === 'profile') {
                         loadTransactionHistory();
@@ -8772,6 +8736,9 @@
             `;
 
             container.innerHTML = tableHTML;
+
+            // Candlestick coin listesini güncelle
+            updateCandlestickCoinList();
         }
 
         // Pozisyon istatistiklerini güncelle
@@ -9000,268 +8967,11 @@
             }
         }
 
-        // Grafik yönetimi
-        let priceCharts = {};
-        let chartUpdateIntervals = {};
 
-        // Coin fiyat grafiği oluştur
-        function createPriceChart(coinSymbol, containerId, initialPrice = 0) {
-            // Chart.js kontrolü
-            if (typeof Chart === 'undefined') {
-                console.error('❌ Chart.js yüklenmemiş!');
-                return null;
-            }
             
-            const ctx = document.getElementById(containerId);
-            if (!ctx) {
-                console.error(`❌ Canvas elementi bulunamadı: ${containerId}`);
-                return null;
-            }
 
-            const chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: `${coinSymbol} Fiyat (₺)`,
-                        data: [],
-                        borderColor: '#00d4aa',
-                        backgroundColor: 'rgba(0, 212, 170, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 3,
-                        pointHoverRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.dataset.label}: ₺${context.parsed.y.toLocaleString('tr-TR', {minimumFractionDigits: 2})}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Zaman'
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Fiyat (₺)'
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return '₺' + value.toLocaleString('tr-TR');
-                                }
-                            }
-                        }
-                    },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
-                    }
-                }
-            });
-
-            priceCharts[coinSymbol] = chart;
-            return chart;
-        }
-
-        // Grafik verilerini güncelle
-        function updatePriceChart(coinSymbol, newPrice, maxDataPoints = 50) {
-            const chart = priceCharts[coinSymbol];
-            if (!chart) return;
-
-            const now = new Date();
-            const timeLabel = now.toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
-
-            // Yeni veri ekle
-            chart.data.labels.push(timeLabel);
-            chart.data.datasets[0].data.push(newPrice);
-
-            // Maksimum veri noktası sayısını kontrol et
-            if (chart.data.labels.length > maxDataPoints) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-
-            chart.update('none'); // Animasyon olmadan güncelle
-        }
-
-        // Grafik güncelleme interval'ini başlat
-        function startChartUpdates(coinSymbol, containerId) {
-            console.log(`🚀 Grafik başlatılıyor: ${coinSymbol} -> ${containerId}`);
-            
-            // Önceki interval'i temizle
-            if (chartUpdateIntervals[coinSymbol]) {
-                clearInterval(chartUpdateIntervals[coinSymbol]);
-            }
-
-            // İlk grafiği oluştur
-            const chart = createPriceChart(coinSymbol, containerId);
-            if (!chart) {
-                console.error(`❌ Grafik oluşturulamadı: ${containerId}`);
-                return;
-            }
-
-            console.log(`✅ Grafik oluşturuldu: ${coinSymbol}`);
-
-            // İlk veriyi hemen al
-            setTimeout(async () => {
-                try {
-                    console.log(`📊 İlk veri alınıyor: ${coinSymbol}`);
-                    const response = await fetch('backend/user/coins.php?action=all', {
-                        credentials: 'include'
-                    });
-                    const data = await response.json();
-                    
-                    console.log(`📋 API yanıtı:`, data);
-                    
-                    if (data.success && data.coins) {
-                        const coin = data.coins.find(c => c.coin_kodu === coinSymbol);
-                        console.log(`🪙 Bulunan coin:`, coin);
-                        
-                        // Farklı fiyat alanlarını kontrol et
-                        const price = coin?.current_price || coin?.price || coin?.priceInTL || coin?.fiyat;
-                        
-                        if (coin && price) {
-                            const numericPrice = parseFloat(price);
-                            console.log(`💰 Fiyat güncelleniyor: ${coinSymbol} = ₺${numericPrice}`);
-                            updatePriceChart(coinSymbol, numericPrice);
-                        } else {
-                            console.warn(`⚠️ ${coinSymbol} için fiyat bulunamadı. Mevcut alanlar:`, Object.keys(coin || {}));
-                            // Test için sabit fiyat kullan
-                            const testPrices = {
-                                'BTC': 1350000,
-                                'ETH': 85000,
-                                'BNB': 12500
-                            };
-                            if (testPrices[coinSymbol]) {
-                                console.log(`🧪 Test fiyatı kullanılıyor: ${coinSymbol} = ₺${testPrices[coinSymbol]}`);
-                                updatePriceChart(coinSymbol, testPrices[coinSymbol]);
-                            }
-                        }
-                    } else {
-                        console.error(`❌ API hatası:`, data.error);
-                    }
-                } catch (error) {
-                    console.error('İlk grafik verisi alma hatası:', error);
-                }
-            }, 1000);
-
-            // 30 saniyede bir güncelle
-            chartUpdateIntervals[coinSymbol] = setInterval(async () => {
-                try {
-                    const response = await fetch('backend/user/coins.php?action=all', {
-                        credentials: 'include'
-                    });
-                    const data = await response.json();
-                    
-                    if (data.success && data.coins) {
-                        const coin = data.coins.find(c => c.coin_kodu === coinSymbol);
-                        const price = coin?.current_price || coin?.price || coin?.priceInTL || coin?.fiyat;
-                        
-                        if (coin && price) {
-                            const numericPrice = parseFloat(price);
-                            console.log(`🔄 Güncelleme: ${coinSymbol} = ₺${numericPrice}`);
-                            updatePriceChart(coinSymbol, numericPrice);
-                        } else {
-                            // Test fiyatları ile güncelle
-                            const testPrices = {
-                                'BTC': 1350000 + Math.random() * 10000,
-                                'ETH': 85000 + Math.random() * 1000,
-                                'BNB': 12500 + Math.random() * 100
-                            };
-                            if (testPrices[coinSymbol]) {
-                                console.log(`🧪 Test güncelleme: ${coinSymbol} = ₺${testPrices[coinSymbol].toFixed(2)}`);
-                                updatePriceChart(coinSymbol, testPrices[coinSymbol]);
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error('Grafik güncelleme hatası:', error);
-                }
-            }, 30000);
-        }
-
-        // Grafik güncellemelerini durdur
-        function stopChartUpdates(coinSymbol) {
-            if (chartUpdateIntervals[coinSymbol]) {
-                clearInterval(chartUpdateIntervals[coinSymbol]);
-                delete chartUpdateIntervals[coinSymbol];
-            }
-        }
-
-        // Tüm grafikleri durdur
-        function stopAllChartUpdates() {
-            Object.keys(chartUpdateIntervals).forEach(symbol => {
-                stopChartUpdates(symbol);
-            });
-        }
-
-        // Tüm grafikleri başlat
-        function startAllChartUpdates() {
-            startChartUpdates('BTC', 'btcChart');
-            startChartUpdates('ETH', 'ethChart');
-            startChartUpdates('BNB', 'bnbChart');
-        }
-
-        // Pozisyonlar sekmesine geçildiğinde grafikleri başlat
-        function initPositionCharts() {
-            console.log('📈 Pozisyon grafikleri başlatılıyor...');
-            
-            // Önce tüm grafikleri durdur
-            stopAllChartUpdates();
-            
-            // Sonra yeniden başlat
-            setTimeout(() => {
-                startAllChartUpdates();
-            }, 1000);
-        }
-
-        // Test fonksiyonu - console'dan çağırabilirsin
-        function testCharts() {
-            console.log('🧪 Grafik testi başlatılıyor...');
-            
-            // Chart.js kontrolü
-            if (typeof Chart === 'undefined') {
-                console.error('❌ Chart.js yüklenmemiş!');
-                return;
-            } else {
-                console.log('✅ Chart.js yüklendi!');
-            }
-            
-            console.log('📊 Mevcut grafikler:', Object.keys(priceCharts));
-            console.log('⏰ Aktif interval\'ler:', Object.keys(chartUpdateIntervals));
-            
-            // Test verisi ekle
-            updatePriceChart('BTC', 1350000);
-            updatePriceChart('ETH', 85000);
-            updatePriceChart('BNB', 12500);
-            
-            console.log('✅ Test verileri eklendi!');
-        }
 
         // Global test fonksiyonları
-        window.testCharts = testCharts;
         window.testLightweightCharts = testLightweightCharts;
 
         // Candlestick Grafik Yönetimi
@@ -9449,6 +9159,57 @@
             loadCandlestickData();
         }
 
+        // Pozisyonlardan coin listesini al ve candlestick dropdown'ını güncelle
+        function updateCandlestickCoinList() {
+            const coinSelect = document.getElementById('coinSelect');
+            if (!coinSelect) return;
+
+            // Pozisyonlardan coin listesini al
+            const positionRows = document.querySelectorAll('#positionsTable tbody tr');
+            const coins = new Set();
+
+            positionRows.forEach(row => {
+                const coinCell = row.querySelector('td:nth-child(2)'); // Coin sütunu
+                if (coinCell) {
+                    const coinText = coinCell.textContent.trim();
+                    // "BTC" formatından coin kodunu çıkar
+                    const coinMatch = coinText.match(/\(([A-Z]+)\)/);
+                    if (coinMatch) {
+                        coins.add(coinMatch[1]);
+                    }
+                }
+            });
+
+            // Dropdown'ı temizle
+            coinSelect.innerHTML = '';
+
+            if (coins.size > 0) {
+                // Pozisyonlardaki coinleri ekle
+                coins.forEach(coin => {
+                    const option = document.createElement('option');
+                    option.value = coin;
+                    option.textContent = `${coin}`;
+                    coinSelect.appendChild(option);
+                });
+
+                // İlk coin'i seç
+                coinSelect.value = Array.from(coins)[0];
+                currentCoin = Array.from(coins)[0];
+                console.log(`📊 Candlestick için ${coins.size} coin bulundu: ${Array.from(coins).join(', ')}`);
+            } else {
+                // Pozisyon yoksa default BTC ekle
+                const option = document.createElement('option');
+                option.value = 'BTC';
+                option.textContent = 'BTC';
+                coinSelect.appendChild(option);
+                currentCoin = 'BTC';
+                console.log('📊 Pozisyon bulunamadı, default BTC kullanılıyor');
+            }
+
+            // Candlestick verilerini yükle
+            loadCandlestickData();
+        }
+
         // Candlestick grafiği başlat
         function initCandlestickChart() {
             // LightweightCharts yüklendi mi kontrol et
@@ -9460,7 +9221,7 @@
             
             console.log('🚀 Candlestick grafiği başlatılıyor...');
             createCandlestickChart();
-            loadCandlestickData();
+            updateCandlestickCoinList(); // Pozisyonlardan coin listesini güncelle
         }
 
         // Test fonksiyonu - LightweightCharts durumunu kontrol et
