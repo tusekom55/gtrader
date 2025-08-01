@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config.php';
+// Config.php zaten main dosyada yükleniyor, tekrar yüklemeye gerek yok
 
 function add_log($user_id, $tip, $detay) {
     try {

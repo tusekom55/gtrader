@@ -1,4 +1,7 @@
 <?php
+// BOM ve whitespace temizle
+if (ob_get_level()) ob_end_clean();
+
 // Output buffering başlat - HTML output'u önlemek için
 ob_start();
 
@@ -12,6 +15,8 @@ error_log('Step 1: Starting leverage_trading.php');
 
 try {
     require_once '../config.php';
+    // Config'dan sonra buffer temizle
+    if (ob_get_level()) ob_clean();
     error_log('Step 2: Config.php loaded successfully');
 } catch (Exception $e) {
     error_log('Config.php error: ' . $e->getMessage());
@@ -20,6 +25,8 @@ try {
 
 try {
     require_once '../utils/security.php';
+    // Security'den sonra buffer temizle
+    if (ob_get_level()) ob_clean();
     error_log('Step 3: Security.php loaded successfully');
 } catch (Exception $e) {
     error_log('Security.php error: ' . $e->getMessage());
@@ -28,6 +35,8 @@ try {
 
 try {
     require_once '../utils/log.php';
+    // Log'dan sonra buffer temizle
+    if (ob_get_level()) ob_clean();
     error_log('Step 4: Log.php loaded successfully');
 } catch (Exception $e) {
     error_log('Log.php error: ' . $e->getMessage());
@@ -35,7 +44,7 @@ try {
 }
 
 // Output buffer'ı tamamen temizle ve kapat
-if (ob_get_level()) {
+while (ob_get_level()) {
     ob_end_clean();
 }
 // Yeni buffer başlat
@@ -568,8 +577,21 @@ function updateLeverageSettings($user_id, $data) {
     echo json_encode(['success' => true, 'message' => 'Settings updated']);
 }
 
-// Buffer'ı temizle ve çıktıyı gönder
+// Tüm output'u yakalayıp temizleyelim
+$output = '';
 if (ob_get_level()) {
-    ob_end_flush();
+    $output = ob_get_clean();
+}
+
+// Output'da JSON var mı kontrol et, sadece JSON'u gönder
+$json_start = strpos($output, '{');
+$json_end = strrpos($output, '}');
+
+if ($json_start !== false && $json_end !== false) {
+    $json_output = substr($output, $json_start, $json_end - $json_start + 1);
+    echo trim($json_output);
+} else {
+    // JSON bulunamadıysa direkt output'u gönder ama temizle
+    echo trim($output);
 }
 ?>

@@ -8724,7 +8724,10 @@
                     console.log('📋 API verisi:', data);
                 } catch (parseError) {
                     console.error('❌ JSON Parse Error:', parseError);
-                    console.error('📄 Response content:', responseText.substring(0, 500) + '...');
+                    console.error('📄 Full Response content:', responseText);
+                    console.error('📏 Response length:', responseText.length);
+                    console.error('🔤 First 100 chars:', JSON.stringify(responseText.substring(0, 100)));
+                    console.error('🔤 Last 100 chars:', JSON.stringify(responseText.substring(responseText.length - 100)));
                     throw new Error('Server response is not valid JSON');
                 }
                 
