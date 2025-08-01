@@ -1,12 +1,18 @@
 <?php
+// Output buffering başlat - HTML output'u önlemek için
+ob_start();
+
 // Error reporting için
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', 0); // Console'da göster ama response'a yazma
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 require_once '../config.php';
 require_once '../utils/security.php';
 require_once '../utils/log.php';
+
+// Output buffer'ı temizle (include'lar sırasında çıkan HTML'i temizler)
+ob_clean();
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');

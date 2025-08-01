@@ -8714,8 +8714,19 @@
 
                 console.log('📥 API yanıtı alındı:', response.status, response.statusText);
                 
-                const data = await response.json();
-                console.log('📋 API verisi:', data);
+                // Response içeriğini önce text olarak alalım
+                const responseText = await response.text();
+                console.log('📄 Raw response:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                    console.log('📋 API verisi:', data);
+                } catch (parseError) {
+                    console.error('❌ JSON Parse Error:', parseError);
+                    console.error('📄 Response content:', responseText.substring(0, 500) + '...');
+                    throw new Error('Server response is not valid JSON');
+                }
                 
                 if (data.success) {
                     showNotification(`Kaldıraçlı pozisyon açıldı! Pozisyon ID: ${data.position_id}`, 'success');

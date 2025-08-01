@@ -1,10 +1,22 @@
 <?php
 require_once __DIR__ . '/../config.php';
+
 function add_log($user_id, $tip, $detay) {
-    $conn = db_connect();
-    $stmt = $conn->prepare('INSERT INTO loglar (user_id, tip, detay) VALUES (?, ?, ?)');
-    $stmt->bind_param('iss', $user_id, $tip, $detay);
-    $stmt->execute();
-    $stmt->close();
-    $conn->close();
+    try {
+        $conn = db_connect(); // PDO connection
+        $stmt = $conn->prepare('INSERT INTO loglar (user_id, tip, detay) VALUES (?, ?, ?)');
+        $stmt->execute([$user_id, $tip, $detay]);
+    } catch (Exception $e) {
+        error_log('Log error: ' . $e->getMessage());
+    }
+}
+
+function logError($message) {
+    error_log($message);
+    // Veritabanına log atmayı dene, hata olursa sadece error_log kullan
+    try {
+        add_log(0, 'error', $message);
+    } catch (Exception $e) {
+        error_log('Failed to log to database: ' . $e->getMessage());
+    }
 } 
