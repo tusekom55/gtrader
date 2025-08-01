@@ -7,12 +7,36 @@ ini_set('display_errors', 0); // Console'da göster ama response'a yazma
 ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
-require_once '../config.php';
-require_once '../utils/security.php';
-require_once '../utils/log.php';
+// Step by step debug
+error_log('Step 1: Starting leverage_trading.php');
+
+try {
+    require_once '../config.php';
+    error_log('Step 2: Config.php loaded successfully');
+} catch (Exception $e) {
+    error_log('Config.php error: ' . $e->getMessage());
+    die(json_encode(['error' => 'Config load failed']));
+}
+
+try {
+    require_once '../utils/security.php';
+    error_log('Step 3: Security.php loaded successfully');
+} catch (Exception $e) {
+    error_log('Security.php error: ' . $e->getMessage());
+    die(json_encode(['error' => 'Security load failed']));
+}
+
+try {
+    require_once '../utils/log.php';
+    error_log('Step 4: Log.php loaded successfully');
+} catch (Exception $e) {
+    error_log('Log.php error: ' . $e->getMessage());
+    die(json_encode(['error' => 'Log load failed']));
+}
 
 // Output buffer'ı temizle (include'lar sırasında çıkan HTML'i temizler)
 ob_clean();
+error_log('Step 5: All includes loaded, buffer cleaned');
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -39,6 +63,27 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+error_log('Step 6: User authenticated, user_id: ' . $user_id);
+
+// Database connection test
+try {
+    global $conn;
+    if (!$conn) {
+        throw new Exception('MySQLi connection not available');
+    }
+    
+    // Test query
+    $test_result = $conn->query("SELECT 1");
+    if (!$test_result) {
+        throw new Exception('Database test query failed: ' . $conn->error);
+    }
+    error_log('Step 7: Database connection test successful');
+} catch (Exception $e) {
+    error_log('Database connection error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Database connection failed']);
+    exit;
+}
 
 // Admin kontrolü (opsiyonel)
 if ($_SESSION['role'] !== 'user' && $_SESSION['role'] !== 'admin') {
