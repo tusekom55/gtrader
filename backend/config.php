@@ -1,9 +1,9 @@
 <?php
 // Veritabanı bağlantı ayarları
 $DB_HOST = 'localhost';
-$DB_USER = 'u225998063_tug01';
+$DB_USER = 'u225998063_yenip';
 $DB_PASS = '123456Tubb';
-$DB_NAME = 'u225998063_proje';
+$DB_NAME = 'u225998063_yenip';
 
 // PDO Bağlantı fonksiyonu (hata kontrolü ile)
 function db_connect() {
@@ -33,6 +33,22 @@ function db_connect() {
         }
     }
 }
+
+// MySQLi bağlantı değişkeni (global kullanım için)
+$conn = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
+
+// MySQLi bağlantı kontrolü
+if ($conn->connect_error) {
+    error_log('MySQLi connection error: ' . $conn->connect_error);
+    if (defined('DEBUG_MODE') && DEBUG_MODE) {
+        die(json_encode(['error' => 'MySQLi bağlantı hatası: ' . $conn->connect_error]));
+    } else {
+        die(json_encode(['error' => 'Veritabanı bağlantısı kurulamadı']));
+    }
+}
+
+// UTF-8 karakter seti ayarla
+$conn->set_charset("utf8mb4");
 
 // Debug modu (production'da false yapın)
 define('DEBUG_MODE', false);
