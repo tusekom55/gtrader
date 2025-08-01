@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
             <!-- Chart.js CDN - Latest Version -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         * {
             margin: 0;
@@ -4494,6 +4495,42 @@
             transform: translateY(-1px);
         }
 
+        /* Candlestick Grafik Stilleri */
+        .candlestick-container {
+            height: 500px;
+            width: 100%;
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #333;
+        }
+
+        #candlestickChart {
+            width: 100%;
+            height: 100%;
+        }
+
+        .timeframe-select, .coin-select {
+            background: #2d3748;
+            color: white;
+            border: 1px solid #4a5568;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .timeframe-select:focus, .coin-select:focus {
+            outline: none;
+            border-color: #00d4aa;
+        }
+
+        .timeframe-select option, .coin-select option {
+            background: #2d3748;
+            color: white;
+        }
+
         /* Mobile Responsive - Kaldıraç */
         @media (max-width: 768px) {
             .leverage-buttons {
@@ -5451,6 +5488,36 @@
                         </div>
                     </div>
                     
+                    <!-- Candlestick Grafik -->
+                    <div class="card mb-6">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-chart-line" style="color: #00d4aa; margin-right: 10px;"></i>
+                                Candlestick Grafik
+                            </h3>
+                            <div class="chart-controls">
+                                <select id="timeframeSelect" class="timeframe-select" onchange="changeTimeframe()">
+                                    <option value="1m">1 Dakika</option>
+                                    <option value="5m">5 Dakika</option>
+                                    <option value="1h">1 Saat</option>
+                                    <option value="1d" selected>1 Gün</option>
+                                </select>
+                                <select id="coinSelect" class="coin-select" onchange="changeCoin()">
+                                    <option value="BTC" selected>Bitcoin (BTC)</option>
+                                    <option value="ETH">Ethereum (ETH)</option>
+                                    <option value="BNB">Binance Coin (BNB)</option>
+                                </select>
+                                <button class="btn-secondary" onclick="refreshCandlestick()">
+                                    <i class="fas fa-sync-alt"></i>
+                                    Yenile
+                                </button>
+                            </div>
+                        </div>
+                        <div class="candlestick-container">
+                            <div id="candlestickChart"></div>
+                        </div>
+                    </div>
+
                     <!-- Canlı Fiyat Grafikleri -->
                     <div class="card mb-6">
                         <div class="card-header">
@@ -5678,6 +5745,7 @@
                         loadPositions();
                         startPriceUpdates(); // Pozisyonlar sekmesinde otomatik fiyat güncelleme başlat
                         initPositionCharts(); // Grafikleri başlat
+                        initCandlestickChart(); // Candlestick grafiği başlat
                     } else if (targetSection === 'profile') {
                         loadTransactionHistory();
                         stopPriceUpdates();
@@ -9194,6 +9262,185 @@
 
         // Global test fonksiyonu
         window.testCharts = testCharts;
+
+        // Candlestick Grafik Yönetimi
+        let candlestickChart = null;
+        let candlestickSeries = null;
+        let currentTimeframe = '1d';
+        let currentCoin = 'BTC';
+
+        // Candlestick grafik oluştur
+        function createCandlestickChart() {
+            const container = document.getElementById('candlestickChart');
+            if (!container) return;
+
+            // Önceki grafiği temizle
+            if (candlestickChart) {
+                candlestickChart.remove();
+            }
+
+            candlestickChart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: container.clientHeight,
+                layout: {
+                    background: { color: '#1a1a1a' },
+                    textColor: '#d1d5db',
+                },
+                grid: {
+                    vertLines: { color: '#2d3748' },
+                    horzLines: { color: '#2d3748' },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: '#4a5568',
+                },
+                timeScale: {
+                    borderColor: '#4a5568',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+
+            candlestickSeries = candlestickChart.addCandlestickSeries({
+                upColor: '#00d4aa',
+                downColor: '#ef4444',
+                borderDownColor: '#ef4444',
+                borderUpColor: '#00d4aa',
+                wickDownColor: '#ef4444',
+                wickUpColor: '#00d4aa',
+            });
+
+            // Responsive
+            window.addEventListener('resize', () => {
+                if (candlestickChart) {
+                    candlestickChart.applyOptions({
+                        width: container.clientWidth,
+                        height: container.clientHeight,
+                    });
+                }
+            });
+        }
+
+        // Candlestick verisi oluştur (24 saatlik)
+        function generateCandlestickData(timeframe = '1d', basePrice = 1350000) {
+            const data = [];
+            const now = Math.floor(Date.now() / 1000);
+            let interval = 86400; // 1 gün default
+
+            // Timeframe'e göre interval ayarla
+            switch (timeframe) {
+                case '1m': interval = 60; break;
+                case '5m': interval = 300; break;
+                case '1h': interval = 3600; break;
+                case '1d': interval = 86400; break;
+            }
+
+            // 24 saatlik veri oluştur
+            const periods = 24 * (86400 / interval);
+            let currentPrice = basePrice;
+
+            for (let i = periods; i >= 0; i--) {
+                const time = now - (i * interval);
+                
+                // Random fiyat hareketi
+                const change = (Math.random() - 0.5) * 0.02; // ±1% değişim
+                const newPrice = currentPrice * (1 + change);
+                
+                // OHLC hesapla
+                const high = Math.max(currentPrice, newPrice) * (1 + Math.random() * 0.01);
+                const low = Math.min(currentPrice, newPrice) * (1 - Math.random() * 0.01);
+                const open = currentPrice;
+                const close = newPrice;
+
+                data.push({
+                    time: time,
+                    open: open,
+                    high: high,
+                    low: low,
+                    close: close,
+                });
+
+                currentPrice = newPrice;
+            }
+
+            return data;
+        }
+
+        // Candlestick verilerini yükle
+        async function loadCandlestickData() {
+            try {
+                console.log(`📊 Candlestick verisi yükleniyor: ${currentCoin} - ${currentTimeframe}`);
+                
+                // Backend API'den veri al
+                const response = await fetch(`backend/user/candlestick.php?symbol=${currentCoin}&timeframe=${currentTimeframe}&limit=100`, {
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    if (candlestickSeries) {
+                        candlestickSeries.setData(result.data);
+                        console.log(`✅ ${result.data.length} candlestick verisi yüklendi`);
+                    }
+                } else {
+                    console.error('Candlestick API hatası:', result.error);
+                    // Fallback: Local veri kullan
+                    const basePrices = {
+                        'BTC': 1350000,
+                        'ETH': 85000,
+                        'BNB': 12500
+                    };
+                    const basePrice = basePrices[currentCoin] || 1350000;
+                    const data = generateCandlestickData(currentTimeframe, basePrice);
+                    
+                    if (candlestickSeries) {
+                        candlestickSeries.setData(data);
+                        console.log(`🔄 Fallback: ${data.length} candlestick verisi yüklendi`);
+                    }
+                }
+            } catch (error) {
+                console.error('Candlestick veri yükleme hatası:', error);
+                // Fallback: Local veri kullan
+                const basePrices = {
+                    'BTC': 1350000,
+                    'ETH': 85000,
+                    'BNB': 12500
+                };
+                const basePrice = basePrices[currentCoin] || 1350000;
+                const data = generateCandlestickData(currentTimeframe, basePrice);
+                
+                if (candlestickSeries) {
+                    candlestickSeries.setData(data);
+                    console.log(`🔄 Fallback: ${data.length} candlestick verisi yüklendi`);
+                }
+            }
+        }
+
+        // Timeframe değiştir
+        function changeTimeframe() {
+            currentTimeframe = document.getElementById('timeframeSelect').value;
+            loadCandlestickData();
+        }
+
+        // Coin değiştir
+        function changeCoin() {
+            currentCoin = document.getElementById('coinSelect').value;
+            loadCandlestickData();
+        }
+
+        // Candlestick grafiği yenile
+        function refreshCandlestick() {
+            loadCandlestickData();
+        }
+
+        // Candlestick grafiği başlat
+        function initCandlestickChart() {
+            createCandlestickChart();
+            loadCandlestickData();
+        }
 
         // Sayfa yüklendiğinde kaldıraç sistemini başlat
         document.addEventListener('DOMContentLoaded', function() {
