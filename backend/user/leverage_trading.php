@@ -5,9 +5,9 @@ if (ob_get_level()) ob_end_clean();
 // Output buffering başlat - HTML output'u önlemek için
 ob_start();
 
-// Error reporting için - error'ları görmek için geçici olarak açalım
-ini_set('display_errors', 1); 
-ini_set('display_startup_errors', 1);
+// Error reporting için
+ini_set('display_errors', 0); 
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 // Test endpoint - hemen çık
@@ -339,7 +339,7 @@ function openPosition($user_id, $data) {
             (user_id, coin_symbol, position_type, leverage_ratio, entry_price, position_size, invested_amount, current_price, liquidation_price)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param("issddddd", $user_id, $coin_symbol, $position_type, $leverage_ratio, $entry_price, $position_size, $invested_amount, $entry_price, $liquidation_price);
+        $stmt->bind_param("issdddddd", $user_id, $coin_symbol, $position_type, $leverage_ratio, $entry_price, $position_size, $invested_amount, $entry_price, $liquidation_price);
         $stmt->execute();
         
         $position_id = $conn->insert_id;
