@@ -5582,12 +5582,18 @@
                     // Section-specific loading
                     if (targetSection === 'deposit') {
                         loadRecentDeposits();
+                        stopPriceUpdates(); // Diğer sekmelerde fiyat güncellemesini durdur
                     } else if (targetSection === 'portfolio') {
                         loadPortfolio();
+                        stopPriceUpdates();
                     } else if (targetSection === 'positions') {
                         loadPositions();
+                        startPriceUpdates(); // Pozisyonlar sekmesinde otomatik fiyat güncelleme başlat
                     } else if (targetSection === 'profile') {
                         loadTransactionHistory();
+                        stopPriceUpdates();
+                    } else {
+                        stopPriceUpdates(); // Diğer tüm sekmelerde durdur
                     }
                 });
             });
@@ -8682,28 +8688,75 @@
             await loadPositions();
         }
 
-        // Test endpoint'i
-        async function testLeverageAPI() {
-            console.log('🧪 Testing leverage API...');
+        // Real-time pozisyon fiyat güncellemesi
+        async function updatePositionPrices() {
             try {
-                const response = await fetch('backend/user/leverage_trading.php?test=1', {
-                    method: 'GET',
+                // Mevcut coin fiyatlarını al
+                const response = await fetch('backend/user/coins.php?action=all', {
                     credentials: 'include'
                 });
-                console.log('🧪 Test response status:', response.status);
-                const responseText = await response.text();
-                console.log('🧪 Test response:', responseText);
-                const data = JSON.parse(responseText);
-                console.log('🧪 Test JSON:', data);
-                alert('Test başarılı: ' + JSON.stringify(data));
+                const coinsData = await response.json();
+                
+                if (coinsData.success && coinsData.coins) {
+                    const prices = {};
+                    coinsData.coins.forEach(coin => {
+                        prices[coin.symbol] = coin.current_price;
+                    });
+                    
+                    // Backend'e fiyat güncellemesi gönder
+                    const updateResponse = await fetch('backend/user/leverage_trading.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            action: 'update_prices',
+                            prices: prices
+                        })
+                    });
+                    
+                    const updateData = await updateResponse.json();
+                    if (updateData.success) {
+                        // Pozisyonları yenile
+                        await loadPositions();
+                    }
+                }
             } catch (error) {
-                console.error('🧪 Test error:', error);
-                alert('Test hatası: ' + error.message);
+                console.error('Fiyat güncelleme hatası:', error);
             }
         }
-        
-        // Console'dan çağırabilmek için global yap
-        window.testLeverageAPI = testLeverageAPI;
+
+        // Otomatik fiyat güncellemesi (30 saniyede bir)
+        let priceUpdateInterval;
+        function startPriceUpdates() {
+            // Önceki interval'i temizle
+            if (priceUpdateInterval) {
+                clearInterval(priceUpdateInterval);
+            }
+            
+            // İlk güncellemeyi hemen yap
+            updatePositionPrices();
+            
+            // 30 saniyede bir güncelle
+            priceUpdateInterval = setInterval(updatePositionPrices, 30000);
+        }
+
+        function stopPriceUpdates() {
+            if (priceUpdateInterval) {
+                clearInterval(priceUpdateInterval);
+                priceUpdateInterval = null;
+            }
+        }
+
+        // Pozisyonların otomatik yenilenmesi için sayfa yüklendiğinde başlat
+        document.addEventListener('DOMContentLoaded', function() {
+            // Eğer sayfa yüklendiğinde pozisyonlar sekmesi aktifse fiyat güncellemesini başlat
+            const activeSection = document.querySelector('.nav-link.active')?.dataset?.section;
+            if (activeSection === 'positions') {
+                startPriceUpdates();
+            }
+        });
 
         // Kaldıraçlı işlem yap
         async function executeLeverageOrder(orderData) {
