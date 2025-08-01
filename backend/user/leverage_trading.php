@@ -5,9 +5,9 @@ if (ob_get_level()) ob_end_clean();
 // Output buffering başlat - HTML output'u önlemek için
 ob_start();
 
-// Error reporting için - debug mode
-ini_set('display_errors', 1); 
-ini_set('display_startup_errors', 1);
+// Error reporting için
+ini_set('display_errors', 0); 
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 // Step by step debug
@@ -196,7 +196,7 @@ function getOpenPositions($user_id) {
                        ((lp.entry_price - c.current_price) / lp.entry_price) * 100 * lp.leverage_ratio
                END) as pnl_percentage
         FROM leverage_positions lp
-        LEFT JOIN coins c ON lp.coin_symbol = c.symbol
+        LEFT JOIN coins c ON lp.coin_symbol = c.coin_kodu
         WHERE lp.user_id = ? AND lp.status = 'open'
         ORDER BY lp.created_at DESC
     ");
