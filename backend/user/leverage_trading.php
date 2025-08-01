@@ -1,4 +1,9 @@
 <?php
+// Error reporting için
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 require_once '../config.php';
 require_once '../utils/security.php';
 require_once '../utils/log.php';
@@ -15,7 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Session tabanlı authentication check
 session_start();
 
+// Debug: Session bilgilerini log'la
+error_log('Session kontrol: ' . print_r($_SESSION, true));
+error_log('Request method: ' . $_SERVER['REQUEST_METHOD']);
+error_log('Request URI: ' . $_SERVER['REQUEST_URI']);
+
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    error_log('Session authentication failed');
     http_response_code(401);
     echo json_encode(['error' => 'Authentication required - Please login']);
     exit;
@@ -32,6 +43,14 @@ if ($_SESSION['role'] !== 'user' && $_SESSION['role'] !== 'admin') {
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
+    error_log('Method: ' . $method);
+    
+    if ($method === 'POST') {
+        $input = file_get_contents('php://input');
+        error_log('POST input: ' . $input);
+        $data = json_decode($input, true);
+        error_log('Decoded data: ' . print_r($data, true));
+    }
     
     switch ($method) {
         case 'GET':
@@ -56,17 +75,16 @@ try {
             break;
             
         case 'POST':
-            $input = json_decode(file_get_contents('php://input'), true);
-            if (isset($input['action'])) {
-                switch ($input['action']) {
+            if (isset($data['action'])) {
+                switch ($data['action']) {
                     case 'open_position':
-                        openPosition($user_id, $input);
+                        openPosition($user_id, $data);
                         break;
                     case 'close_position':
-                        closePosition($user_id, $input);
+                        closePosition($user_id, $data);
                         break;
                     case 'update_prices':
-                        updatePositionPrices($user_id, $input);
+                        updatePositionPrices($user_id, $data);
                         break;
                     default:
                         http_response_code(400);
@@ -88,9 +106,11 @@ try {
             echo json_encode(['error' => 'Method not allowed']);
     }
 } catch (Exception $e) {
+    error_log("LEVERAGE TRADING ERROR: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     logError("Leverage trading error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error']);
+    echo json_encode(['error' => 'Internal server error: ' . $e->getMessage()]);
 }
 
 // Açık pozisyonları getir
@@ -186,11 +206,16 @@ function getLeverageSettings($user_id) {
 function openPosition($user_id, $data) {
     global $conn;
     
+    error_log("openPosition called with user_id: $user_id");
+    error_log("openPosition data: " . print_r($data, true));
+    
     $coin_symbol = $data['coin_symbol'] ?? '';
     $position_type = $data['position_type'] ?? 'long'; // long or short
     $leverage_ratio = floatval($data['leverage_ratio'] ?? 1.0);
     $invested_amount = floatval($data['invested_amount'] ?? 0);
     $entry_price = floatval($data['entry_price'] ?? 0);
+    
+    error_log("Parsed values: symbol=$coin_symbol, type=$position_type, leverage=$leverage_ratio, amount=$invested_amount, price=$entry_price");
     
     // Validations
     if (empty($coin_symbol) || $invested_amount <= 0 || $entry_price <= 0) {
