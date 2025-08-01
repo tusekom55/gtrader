@@ -8682,6 +8682,29 @@
             await loadPositions();
         }
 
+        // Test endpoint'i
+        async function testLeverageAPI() {
+            console.log('🧪 Testing leverage API...');
+            try {
+                const response = await fetch('backend/user/leverage_trading.php?test=1', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                console.log('🧪 Test response status:', response.status);
+                const responseText = await response.text();
+                console.log('🧪 Test response:', responseText);
+                const data = JSON.parse(responseText);
+                console.log('🧪 Test JSON:', data);
+                alert('Test başarılı: ' + JSON.stringify(data));
+            } catch (error) {
+                console.error('🧪 Test error:', error);
+                alert('Test hatası: ' + error.message);
+            }
+        }
+        
+        // Console'dan çağırabilmek için global yap
+        window.testLeverageAPI = testLeverageAPI;
+
         // Kaldıraçlı işlem yap
         async function executeLeverageOrder(orderData) {
             console.log('🚀 ExecuteLeverageOrder çağrıldı:', orderData);

@@ -5,10 +5,17 @@ if (ob_get_level()) ob_end_clean();
 // Output buffering başlat - HTML output'u önlemek için
 ob_start();
 
-// Error reporting için
-ini_set('display_errors', 0); // Console'da göster ama response'a yazma
-ini_set('display_startup_errors', 0);
+// Error reporting için - error'ları görmek için geçici olarak açalım
+ini_set('display_errors', 1); 
+ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
+// Test endpoint - hemen çık
+if (isset($_GET['test'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['test' => 'success', 'time' => date('Y-m-d H:i:s')]);
+    exit;
+}
 
 // Step by step debug
 error_log('Step 1: Starting leverage_trading.php');
