@@ -12,20 +12,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Authentication check
-$headers = getallheaders();
-$auth_header = $headers['Authorization'] ?? '';
-if (empty($auth_header) || !preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
+// Session tabanlı authentication check
+session_start();
+
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     http_response_code(401);
-    echo json_encode(['error' => 'Authentication required']);
+    echo json_encode(['error' => 'Authentication required - Please login']);
     exit;
 }
 
-$token = $matches[1];
-$user_id = validateToken($token);
-if (!$user_id) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Invalid token']);
+$user_id = $_SESSION['user_id'];
+
+// Admin kontrolü (opsiyonel)
+if ($_SESSION['role'] !== 'user' && $_SESSION['role'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied']);
     exit;
 }
 

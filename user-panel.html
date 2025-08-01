@@ -8504,11 +8504,8 @@
         // Pozisyonları yükle
         async function loadPositions() {
             try {
-                const token = localStorage.getItem('token');
                 const response = await fetch('backend/user/leverage_trading.php?action=positions', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'include'
                 });
 
                 const data = await response.json();
@@ -8645,13 +8642,12 @@
             }
 
             try {
-                const token = localStorage.getItem('token');
                 const response = await fetch('backend/user/leverage_trading.php', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         action: 'close_position',
                         position_id: positionId,
@@ -8662,7 +8658,7 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast(`Pozisyon başarıyla kapatıldı! K/Z: ₺${parseFloat(data.pnl).toLocaleString('tr-TR', {minimumFractionDigits: 2})}`, 'success');
+                    showNotification(`Pozisyon başarıyla kapatıldı! K/Z: ₺${parseFloat(data.pnl).toLocaleString('tr-TR', {minimumFractionDigits: 2})}`, 'success');
                     loadPositions(); // Pozisyonları yenile
                     loadUserInfo(); // Bakiyeyi güncelle
                 } else {
@@ -8670,7 +8666,7 @@
                 }
             } catch (error) {
                 console.error('Pozisyon kapatma hatası:', error);
-                showToast('Pozisyon kapatılırken hata oluştu', 'error');
+                showNotification('Pozisyon kapatılırken hata oluştu', 'error');
             }
         }
 
@@ -8696,9 +8692,6 @@
             });
             
             try {
-                const token = localStorage.getItem('token');
-                console.log('🔑 Token:', token ? 'Mevcut' : 'YOK!');
-                
                 const requestData = {
                     action: 'open_position',
                     coin_symbol: orderData.coin_symbol,
@@ -8713,9 +8706,9 @@
                 const response = await fetch('backend/user/leverage_trading.php', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
+                    credentials: 'include', // Session cookies için
                     body: JSON.stringify(requestData)
                 });
 
@@ -8725,7 +8718,7 @@
                 console.log('📋 API verisi:', data);
                 
                 if (data.success) {
-                    showToast(`Kaldıraçlı pozisyon açıldı! Pozisyon ID: ${data.position_id}`, 'success');
+                    showNotification(`Kaldıraçlı pozisyon açıldı! Pozisyon ID: ${data.position_id}`, 'success');
                     closeTradingModal();
                     loadUserInfo(); // Bakiyeyi güncelle
                     loadPositions(); // Pozisyonları güncelle
@@ -8735,25 +8728,35 @@
                 }
             } catch (error) {
                 console.error('💥 Kaldıraçlı işlem hatası:', error);
-                showToast(`Hata: ${error.message}`, 'error');
+                showNotification(`Hata: ${error.message}`, 'error');
             }
         }
 
-        // Token kontrolü
-        function checkAuthToken() {
-            const token = localStorage.getItem('token');
-            console.log('🔐 Token kontrolü:', token ? 'Mevcut' : 'YOK');
-            if (!token) {
-                console.warn('⚠️ Authentication token bulunamadı!');
+        // Session kontrolü
+        async function checkAuthSession() {
+            try {
+                const response = await fetch('backend/public/profile.php', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    console.log('🔐 Session aktif:', data.user.username);
+                    return true;
+                } else {
+                    console.warn('⚠️ Session bulunamadı - giriş yapın!');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Session kontrol hatası:', error);
                 return false;
             }
-            return true;
         }
 
         // Sayfa yüklendiğinde kaldıraç sistemini başlat
         document.addEventListener('DOMContentLoaded', function() {
             initTradingModal();
-            checkAuthToken();
+            checkAuthSession();
         });
     </script>
 </body>
