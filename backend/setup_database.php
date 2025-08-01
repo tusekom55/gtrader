@@ -35,6 +35,7 @@ try {
         'proje_db_schema.sql',
         'admin_schema.sql', 
         'forex_schema.sql',
+        'leverage_positions_schema.sql',
         'sample_data.sql',
         'update_schema.sql'
     ];
