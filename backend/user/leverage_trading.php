@@ -34,9 +34,13 @@ try {
     die(json_encode(['error' => 'Log load failed']));
 }
 
-// Output buffer'ı temizle (include'lar sırasında çıkan HTML'i temizler)
-ob_clean();
-error_log('Step 5: All includes loaded, buffer cleaned');
+// Output buffer'ı tamamen temizle ve kapat
+if (ob_get_level()) {
+    ob_end_clean();
+}
+// Yeni buffer başlat
+ob_start();
+error_log('Step 5: All includes loaded, buffer cleaned and restarted');
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -562,5 +566,10 @@ function updateLeverageSettings($user_id, $data) {
     $stmt->execute();
     
     echo json_encode(['success' => true, 'message' => 'Settings updated']);
+}
+
+// Buffer'ı temizle ve çıktıyı gönder
+if (ob_get_level()) {
+    ob_end_flush();
 }
 ?>
